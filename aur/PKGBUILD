@@ -8,7 +8,7 @@ url="https://github.com/bromigos-org/mehshell"
 license=('MIT')
 depends=('zsh')
 optdepends=('nerd-fonts: icon support')
-provides=('mehshell')
+provides=("mehshell=${pkgver}")
 conflicts=('mehshell')
 
 source_x86_64=("mehshell-${pkgver}-x86_64.tar.gz::${url}/releases/download/v${pkgver}/mehshell_linux_amd64.tar.gz")
