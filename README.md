@@ -44,7 +44,8 @@ bromigos shell prompt mehshell
 ### Homebrew (macOS & Linux)
 
 TODO: create `bromigos-org/homebrew-tap` and add `HOMEBREW_TAP_TOKEN` to
-this repository. The release workflow uses that exact tap repository.
+this repository. Set the repository variable `HOMEBREW_PUBLISH_ENABLED=true`
+once the tap is ready. The release workflow uses that exact tap repository.
 
 ```bash
 brew tap bromigos-org/tap
@@ -55,6 +56,7 @@ brew install mehshell
 
 TODO: create the AUR account for `bromigOS <packages@bromigos.org>`, transfer
 `mehshell-bin` to it, and add `AUR_SSH_PRIVATE_KEY` to this repository.
+Set the repository variable `AUR_PUBLISH_ENABLED=true` once the transfer is done.
 The release workflow uses that maintainer name and email.
 
 ```bash

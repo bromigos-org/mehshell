@@ -21,7 +21,7 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ vars.HOMEBREW_PUBLISH_ENABLED == 'true' && secrets.HOMEBREW_TAP_TOKEN || '' }}
   aur:
     needs: release
     runs-on: ubuntu-latest
@@ -30,7 +30,7 @@ jobs:
       - name: Check whether AUR publishing is configured
         id: configured
         env:
-          AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          AUR_KEY: ${{ vars.AUR_PUBLISH_ENABLED == 'true' && secrets.AUR_SSH_PRIVATE_KEY || '' }}
         run: |
           if [ -n "$AUR_KEY" ]; then echo 'ready=true' >> "$GITHUB_OUTPUT"; fi
       - name: Update the package from release checksums
