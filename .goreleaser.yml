@@ -22,9 +22,11 @@ checksum:
 
 brews:
   - repository:
-      owner: blackflame007
+      owner: bromigos-org
       name: homebrew-tap
-    homepage: https://github.com/blackflame007/mehshell
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    skip_upload: "{{ if .Env.HOMEBREW_TAP_TOKEN }}false{{ else }}true{{ end }}"
+    homepage: https://bromigos.org
     description: "Fast, parallelized zsh prompt engine written in Go"
     license: MIT
     install: |

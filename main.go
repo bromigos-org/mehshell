@@ -190,7 +190,7 @@ func main() {
 		line2 = fc(cCyan, "╰─") + fc(charColor, "❯")
 	}
 
-	l1 := escShell(line1)
-	l2 := escShell(line2)
+	l1 := escShell(colourPrompt(line1, cfg))
+	l2 := escShell(colourPrompt(line2, cfg))
 	fmt.Printf("PROMPT=$'\\n%s\\n%s '\n", l1, l2)
 }

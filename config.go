@@ -13,6 +13,7 @@ type config struct {
 	ViMode          bool
 	Icons           bool
 	Style           string
+	Colours         map[string]string
 	Segments        map[string]bool
 }
 
@@ -23,6 +24,7 @@ func defaultConfig() config {
 		ViMode:          true,
 		Icons:           true,
 		Style:           "lean",
+		Colours:         make(map[string]string),
 		Segments: map[string]bool{
 			"os": true, "dir": true, "git": true, "node": true,
 			"python": true, "go": true, "rust": true, "ruby": true,
@@ -75,6 +77,9 @@ func loadConfig() config {
 				cfg.Style = val
 			}
 		default:
+			if strings.HasPrefix(key, "color_") && validColour(val) {
+				cfg.Colours[strings.TrimPrefix(key, "color_")] = val
+			}
 			if _, ok := cfg.Segments[key]; ok {
 				cfg.Segments[key] = on
 			}
@@ -84,6 +89,9 @@ func loadConfig() config {
 }
 
 const defaultConfigFile = `# mehshell configuration
+# Optional theme colours: color_<256-colour index> = #RRGGBB
+# color_75 = #159b09
+
 #
 # After changing, restart your shell or run: source <(mehshell init zsh)
 # All options default to true if not specified.
@@ -135,3 +143,25 @@ battery = true
 duration = true
 time = true
 `
+
+// Only hexadecimal colours can enter zsh's evaluated prompt output.
+func validColour(s string) bool {
+	if len(s) != 7 || s[0] != '#' {
+		return false
+	}
+	for _, c := range s[1:] {
+		if !strings.ContainsRune("0123456789abcdefABCDEF", c) {
+			return false
+		}
+	}
+	return true
+}
+
+func colourPrompt(s string, cfg config) string {
+	for index, colour := range cfg.Colours {
+		for _, prefix := range []string{"%F{", "%K{"} {
+			s = strings.ReplaceAll(s, prefix+index+"}", prefix+colour+"}")
+		}
+	}
+	return s
+}

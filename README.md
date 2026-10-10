@@ -1,6 +1,8 @@
 # mehshell 🐚
 
-⚡ A blazingly fast, parallelized prompt engine for zsh written in Go.
+A fast zsh prompt engine for [bromigOS](https://bromigos.org), written in Go.
+Created by [blackflame007](https://github.com/blackflame007).
+See the [bromigOS manual](https://bromigos.org/manual/) for desktop setup.
 
 ## Prompt Example
 
@@ -29,41 +31,61 @@
 
 ## 📥 Install
 
-### Homebrew (macOS & Linux)
+### bromigOS
+
+With the signed bromigOS repository configured (packages from
+[pkgs.bromigos.org](https://pkgs.bromigos.org)):
 
 ```bash
-brew tap blackflame007/tap
+sudo pacman -S mehshell
+bromigos shell prompt mehshell
+```
+
+### Homebrew (macOS & Linux)
+
+TODO: create `bromigos-org/homebrew-tap` and add `HOMEBREW_TAP_TOKEN` to
+this repository. The release workflow uses that exact tap repository.
+
+```bash
+brew tap bromigos-org/tap
 brew install mehshell
 ```
 
 ### AUR (Arch Linux)
 
+TODO: create the AUR account for `bromigOS <packages@bromigos.org>`, transfer
+`mehshell-bin` to it, and add `AUR_SSH_PRIVATE_KEY` to this repository.
+The release workflow uses that maintainer name and email.
+
 ```bash
 paru -S mehshell-bin
 ```
 
+The old `blackflame007/tap` Homebrew tap and the existing AUR package still work.
+They are legacy installation routes until the bromigOS accounts are ready.
+
 ### Binary releases
 
-Download a prebuilt binary from [GitHub Releases](https://github.com/blackflame007/mehshell/releases/latest):
+Download a prebuilt binary from [GitHub Releases](https://github.com/bromigos-org/mehshell/releases/latest):
 
 ```bash
 # Linux (x86_64)
-curl -sL https://github.com/blackflame007/mehshell/releases/latest/download/mehshell_linux_amd64.tar.gz | tar xz && mv mehshell ~/.local/bin/
+curl -sL https://github.com/bromigos-org/mehshell/releases/latest/download/mehshell_linux_amd64.tar.gz | tar xz && mv mehshell ~/.local/bin/
 
 # Linux (ARM64)
-curl -sL https://github.com/blackflame007/mehshell/releases/latest/download/mehshell_linux_arm64.tar.gz | tar xz && mv mehshell ~/.local/bin/
+curl -sL https://github.com/bromigos-org/mehshell/releases/latest/download/mehshell_linux_arm64.tar.gz | tar xz && mv mehshell ~/.local/bin/
 
 # macOS (Apple Silicon)
-curl -sL https://github.com/blackflame007/mehshell/releases/latest/download/mehshell_darwin_arm64.tar.gz | tar xz && mv mehshell ~/.local/bin/
+curl -sL https://github.com/bromigos-org/mehshell/releases/latest/download/mehshell_darwin_arm64.tar.gz | tar xz && mv mehshell ~/.local/bin/
 
 # macOS (Intel)
-curl -sL https://github.com/blackflame007/mehshell/releases/latest/download/mehshell_darwin_amd64.tar.gz | tar xz && mv mehshell ~/.local/bin/
+curl -sL https://github.com/bromigos-org/mehshell/releases/latest/download/mehshell_darwin_amd64.tar.gz | tar xz && mv mehshell ~/.local/bin/
 ```
 
 ### From source
 
 ```bash
-go install github.com/blackflame007/mehshell@latest
+go install github.com/bromigos-org/mehshell@latest
 ```
 
 ## 🔌 Zsh Integration
@@ -198,3 +220,10 @@ mehshell is intentionally minimal. p10k is a full-featured theme engine. Pick th
 ## 📄 License
 
 MIT
+
+### Theme colours
+
+`color_75 = #159b09` replaces a zsh palette index with a hex colour.
+The same form works for any foreground or background index. bromigOS writes
+these values when you change theme. Segment and colour changes reload at the
+next prompt. Restart zsh after changing hook options such as `transient_prompt`.

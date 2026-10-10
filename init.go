@@ -43,7 +43,7 @@ func zshInitScript(cfg config) string {
 	}
 	if cfg.TransientPrompt {
 		b.WriteString("_mehshell_accept_line() {\n")
-		b.WriteString("  PROMPT=$'%F{76}❯%f '\n")
+		b.WriteString(fmt.Sprintf("  PROMPT=$'%s '\n", colourPrompt("%F{76}❯%f", cfg)))
 		b.WriteString("  zle reset-prompt\n")
 		b.WriteString("  zle .accept-line\n")
 		b.WriteString("}\n")

@@ -1,3 +1,3 @@
-module github.com/blackflame007/mehshell
+module github.com/bromigos-org/mehshell
 
 go 1.22

@@ -1,101 +1,58 @@
 name: Release
-
 on:
   push:
-    branches: [master]
     tags: ["v*"]
-    paths:
-      - "**.go"
-      - "go.mod"
-      - "go.sum"
-      - ".goreleaser.yml"
-      - ".github/workflows/release.yml"
-
 permissions:
   contents: write
-
 jobs:
-  tag:
-    if: github.ref_type == 'branch'
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.bump.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Bump patch version
-        id: bump
-        run: |
-          latest=$(git tag -l 'v*' --sort=-v:refname | head -n1)
-          if [ -z "$latest" ]; then
-            next="v0.1.0"
-          else
-            major=$(echo "$latest" | cut -d. -f1)
-            minor=$(echo "$latest" | cut -d. -f2)
-            patch=$(echo "$latest" | cut -d. -f3)
-            next="${major}.${minor}.$((patch + 1))"
-          fi
-          git tag "$next"
-          git push origin "$next"
-          echo "tag=$next" >> "$GITHUB_OUTPUT"
-
   release:
-    if: always() && (needs.tag.result == 'success' || github.ref_type == 'tag')
-    needs: [tag]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ needs.tag.outputs.tag || github.ref }}
-
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
-
-      - name: Set goreleaser tag
-        run: |
-          TAG="${{ needs.tag.outputs.tag || github.ref_name }}"
-          git tag -f "$TAG" HEAD 2>/dev/null || true
-          echo "GORELEASER_CURRENT_TAG=$TAG" >> "$GITHUB_ENV"
-
+          go-version-file: go.mod
+      - run: go test -race ./...
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
           args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN || secrets.GITHUB_TOKEN }}
-
+          GITHUB_TOKEN: ${{ github.token }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
   aur:
-    needs: [release, tag]
-    if: always() && needs.release.result == 'success'
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Update PKGBUILD version and checksums
+      - name: Check whether AUR publishing is configured
+        id: configured
+        env:
+          AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+        run: |
+          if [ -n "$AUR_KEY" ]; then echo 'ready=true' >> "$GITHUB_OUTPUT"; fi
+      - name: Update the package from release checksums
+        if: steps.configured.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ needs.tag.outputs.tag || github.ref_name }}"
-          VERSION="${TAG#v}"
-
-          gh release download "$TAG" --pattern checksums.txt --dir /tmp
-          SHA_AMD64=$(grep 'mehshell_linux_amd64.tar.gz' /tmp/checksums.txt | awk '{print $1}')
-          SHA_ARM64=$(grep 'mehshell_linux_arm64.tar.gz' /tmp/checksums.txt | awk '{print $1}')
-
-          sed -i "s/^pkgver=.*/pkgver=${VERSION}/" aur/PKGBUILD
-          sed -i "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('${SHA_AMD64}')/" aur/PKGBUILD
-          sed -i "s/^sha256sums_aarch64=.*/sha256sums_aarch64=('${SHA_ARM64}')/" aur/PKGBUILD
-
+          gh release download "$GITHUB_REF_NAME" --pattern checksums.txt --dir /tmp
+          sed -i "s/^pkgver=.*/pkgver=${GITHUB_REF_NAME#v}/" aur/PKGBUILD
+          for pair in 'x86_64 amd64' 'aarch64 arm64'; do
+            set -- $pair
+            checksum=$(awk -v file="mehshell_linux_$2.tar.gz" '$2 == file {print $1}' /tmp/checksums.txt)
+            test -n "$checksum"
+            sed -i "s/^sha256sums_$1=.*/sha256sums_$1=('$checksum')/" aur/PKGBUILD
+          done
       - name: Publish to AUR
+        if: steps.configured.outputs.ready == 'true'
         uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
           pkgname: mehshell-bin
           pkgbuild: aur/PKGBUILD
-          commit_username: blackflame007
-          commit_email: blackflame007@users.noreply.github.com
+          commit_username: bromigOS
+          commit_email: packages@bromigos.org
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
-          commit_message: "Update to ${{ needs.tag.outputs.tag || github.ref_name }}"
+          commit_message: "Update to ${{ github.ref_name }}"

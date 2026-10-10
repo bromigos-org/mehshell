@@ -1,10 +1,10 @@
-# Maintainer: blackflame007 <https://github.com/blackflame007>
+# Maintainer: bromigOS <packages@bromigos.org>
 pkgname=mehshell-bin
 pkgver=0.1.4
 pkgrel=1
 pkgdesc="A blazingly fast, parallelized prompt engine for zsh written in Go."
 arch=('x86_64' 'aarch64')
-url="https://github.com/blackflame007/mehshell"
+url="https://github.com/bromigos-org/mehshell"
 license=('MIT')
 depends=('zsh')
 optdepends=('nerd-fonts: icon support')
@@ -13,10 +13,10 @@ conflicts=('mehshell')
 
 source_x86_64=("mehshell-${pkgver}-x86_64.tar.gz::${url}/releases/download/v${pkgver}/mehshell_linux_amd64.tar.gz")
 source_aarch64=("mehshell-${pkgver}-arm64.tar.gz::${url}/releases/download/v${pkgver}/mehshell_linux_arm64.tar.gz")
-source=("LICENSE::https://raw.githubusercontent.com/blackflame007/mehshell/master/LICENSE")
+source=("LICENSE")
 sha256sums_x86_64=('SKIP')
 sha256sums_aarch64=('SKIP')
-sha256sums=('SKIP')
+sha256sums=('6231bebd643fb6d87cf38cf3702fdef2c53205ddebc9a552a27f4d90ffe22ef6')
 
 package() {
     install -Dm755 mehshell "${pkgdir}/usr/bin/mehshell"

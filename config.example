@@ -50,3 +50,6 @@ gcloud = true
 battery = true
 duration = true
 time = true
+
+# Optional theme colours: color_<256-colour index> = #RRGGBB
+# color_75 = #159b09

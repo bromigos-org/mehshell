@@ -22,7 +22,7 @@ mehshell/
 ├── config.example       # Reference config with all options documented
 ├── .goreleaser.yml      # Cross-platform release builds + Homebrew tap
 ├── .github/workflows/
-│   └── release.yml      # Auto-tag → GoReleaser → AUR publish pipeline
+│   └── release.yml      # Tag → GoReleaser → optional AUR publish pipeline
 ├── aur/
 │   ├── PKGBUILD         # Arch Linux package definition
 │   └── LICENSE          # MIT license for AUR
@@ -45,7 +45,7 @@ Six-file layout, single `main` package. No `internal/`, `cmd/`, `pkg/` — inten
 | Color constants | `render.go` L9-18 | Zsh 256-color codes: `cCyan=75`, `cBlue=39`, etc. |
 | Version injection | `main.go` L13 | `var Version = "dev"`, set via ldflags: `-X main.Version={{.Version}}` |
 | Release config | `.goreleaser.yml` | Linux + macOS, amd64 + arm64, CGO off, Homebrew tap |
-| CI pipeline | `.github/workflows/release.yml` | Auto-tag on master push → GoReleaser → AUR publish |
+| CI pipeline | `.github/workflows/release.yml` | Checks on push; tag → GoReleaser → optional AUR publish |
 | AUR package | `aur/PKGBUILD` | Update `pkgver` manually or via CI |
 
 ## ARCHITECTURE
@@ -164,19 +164,20 @@ go build
 # Version
 ./mehshell --version
 
-# Release (auto on push to master — auto-tags, builds, publishes to Homebrew + AUR)
-git push origin master
+# Release (after checks pass; never move an existing tag)
+git tag v<version>
+git push origin v<version>
 ```
 
 ## NOTES
 
 - **Binary in repo**: Compiled `mehshell` ELF exists at root (gitignored but present). Don't confuse with source.
-- **No tests**: No `*_test.go` files exist. `go test` has nothing to run.
+- **Tests**: `go test -race ./...` covers config reload, colour validation and rendering.
 - **No linter config**: No golangci-lint, relies on `gofmt` defaults.
-- **No LICENSE at root**: License file only in `aur/` directory.
+- **Licence**: MIT, with the original author credit in `LICENSE` and `aur/LICENSE`.
 - **Nerd Font required**: Icons render as boxes without a patched font. `icons=false` switches to text labels.
 - **Zsh only**: `init` subcommand only supports `zsh`. No bash/fish/etc.
-- **CI secrets**: Pipeline requires `HOMEBREW_TAP_TOKEN` (or falls back to `GITHUB_TOKEN`) and `AUR_SSH_PRIVATE_KEY`.
-- **Auto-versioning**: CI auto-bumps patch version on master push (v0.1.3 → v0.1.4). No manual tagging needed.
+- **CI secrets**: Pipeline requires `HOMEBREW_TAP_TOKEN` for `bromigos-org/homebrew-tap` and `AUR_SSH_PRIVATE_KEY`.
+- **Versioning**: Releases run only on version tags. Homebrew and AUR publishing are optional until the operator creates their accounts and secrets.
 - **Config format**: `key = value` (key=value also works). Boolean values: `true`/`1`/`yes` → true, anything else → false.
 - **Style values**: Only `lean`, `classic`, `rainbow` are valid. Invalid values default to lean.
