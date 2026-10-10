@@ -192,5 +192,6 @@ func main() {
 
 	l1 := escShell(colourPrompt(line1, cfg))
 	l2 := escShell(colourPrompt(line2, cfg))
+	fmt.Printf("_mehshell_transient=$'%s '\n", escShell(colourPrompt("%F{76}❯%f", cfg)))
 	fmt.Printf("PROMPT=$'\\n%s\\n%s '\n", l1, l2)
 }

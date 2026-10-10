@@ -37,3 +37,12 @@ func TestStylesAndWidths(t *testing.T) {
 		}
 	}
 }
+
+func TestTransientUsesReloadedColour(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.Colours["76"] = "#39ff14"
+	init := zshInitScript(cfg)
+	if !strings.Contains(init, "PROMPT=${_mehshell_transient:-$'%F{#39ff14}❯%f '}") {
+		t.Fatal(init)
+	}
+}
