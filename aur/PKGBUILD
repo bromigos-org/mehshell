@@ -1,24 +1,29 @@
 # Maintainer: bromigOS <packages@bromigos.org>
-pkgname=mehshell-bin
+# Contributor: blackflame
+pkgname=mehshell
 pkgver=0.2.2
 pkgrel=1
-pkgdesc="A blazingly fast, parallelized prompt engine for zsh written in Go."
+pkgdesc='Fast parallel zsh prompt engine for bromigOS'
 arch=('x86_64' 'aarch64')
-url="https://github.com/bromigos-org/mehshell"
+url='https://github.com/bromigos-org/mehshell'
 license=('MIT')
 depends=('zsh')
-optdepends=('nerd-fonts: icon support')
-provides=("mehshell=${pkgver}")
-conflicts=('mehshell')
-
-source_x86_64=("mehshell-${pkgver}-x86_64.tar.gz::${url}/releases/download/v${pkgver}/mehshell_linux_amd64.tar.gz")
-source_aarch64=("mehshell-${pkgver}-arm64.tar.gz::${url}/releases/download/v${pkgver}/mehshell_linux_arm64.tar.gz")
-source=("LICENSE::https://raw.githubusercontent.com/bromigos-org/mehshell/v${pkgver}/LICENSE")
-sha256sums_x86_64=('9eecfaebec76f2ebb578707b2d3b3be68b1405fca56ad684a762c6d8e6572945')
-sha256sums_aarch64=('c62f3641b102e0714ffbd074f4272622795193cb36925e6db09543747dff8122')
-sha256sums=('6231bebd643fb6d87cf38cf3702fdef2c53205ddebc9a552a27f4d90ffe22ef6')
-
+makedepends=('go')
+conflicts=('mehshell-bin')
+options=('!debug')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('f370f123d04110f8d660f7b18036681a1f4787eaff1945006faa13005ba2cc62')
+build() {
+  cd "$pkgname-$pkgver"
+  CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.Version=$pkgver" -o mehshell .
+}
+check() {
+  cd "$pkgname-$pkgver"
+  go vet ./...
+  go test ./...
+}
 package() {
-    install -Dm755 mehshell "${pkgdir}/usr/bin/mehshell"
-    install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  cd "$pkgname-$pkgver"
+  install -Dm755 mehshell "$pkgdir/usr/bin/mehshell"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

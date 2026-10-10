@@ -43,10 +43,6 @@ bromigos shell prompt mehshell
 
 ### Homebrew (macOS & Linux)
 
-TODO: create `bromigos-org/homebrew-tap` and add `HOMEBREW_TAP_TOKEN` to
-this repository. Set the repository variable `HOMEBREW_PUBLISH_ENABLED=true`
-once the tap is ready. The release workflow uses that exact tap repository.
-
 ```bash
 brew tap bromigos-org/tap
 brew install mehshell
@@ -54,17 +50,15 @@ brew install mehshell
 
 ### AUR (Arch Linux)
 
-TODO: create the AUR account for `bromigOS <packages@bromigos.org>`, transfer
-`mehshell-bin` to it, and add `AUR_SSH_PRIVATE_KEY` to this repository.
-Set the repository variable `AUR_PUBLISH_ENABLED=true` once the transfer is done.
-The release workflow uses that maintainer name and email.
+The `mehshell` source package is published by the release workflow. Its maintainer
+credit is `bromigOS <packages@bromigos.org>`. The AUR account `blackflame` publishes it.
 
 ```bash
-paru -S mehshell-bin
+paru -S mehshell
 ```
 
-The old `blackflame007/tap` Homebrew tap and the existing AUR package still work.
-They are legacy installation routes until the bromigOS accounts are ready.
+The old `blackflame007/tap` Homebrew tap and `mehshell-bin` AUR package are legacy
+installation routes.
 
 ### Binary releases
 
@@ -230,3 +224,38 @@ MIT
 `color_75 = #159b09` replaces a zsh palette index with a hex colour.
 The same form works for any foreground or background index. bromigOS writes
 these values when you change theme.
+
+## Publishing releases
+
+Push a new version tag after the Go checks pass. The workflow publishes the Linux
+and macOS binaries, updates `bromigos-org/homebrew-tap`, and builds and publishes
+the AUR source package `mehshell`. It never moves an existing tag.
+
+For Homebrew, create a fine-grained personal access token in GitHub Settings →
+Developer settings → Personal access tokens → Fine-grained tokens → Generate new
+token. Choose `bromigos-org` as Resource owner. Choose Only select repositories and
+select `homebrew-tap`. Grant Repository permissions → Contents → Read and write.
+Leave other permissions at their defaults. Complete any organisation approval.
+Set an expiry and save the token as a secret without putting it in a command:
+
+```bash
+gh secret set HOMEBREW_TAP_TOKEN -R bromigos-org/mehshell
+```
+
+Paste the token at the hidden prompt. The workflow checks the token's push
+permission on the tap before releasing. It prints no token value.
+
+AUR publishing uses `AUR_SSH_PRIVATE_KEY`, already configured for `blackflame`.
+To add a future bromigOS co-maintainer, register at
+[aur.archlinux.org](https://aur.archlinux.org) with `packages@bromigos.org` when
+registration is open. Generate an SSH key, add its public key in the account's
+profile, and add the new account as co-maintainer of `mehshell`.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/aur-bromigos-ci -C packages@bromigos.org
+cat ~/.ssh/aur-bromigos-ci.pub
+```
+
+Only the public key goes in the AUR profile. The package repository is
+`ssh://aur@aur.archlinux.org/mehshell.git`. A source build and tests must pass
+before the workflow pushes its PKGBUILD and `.SRCINFO`.

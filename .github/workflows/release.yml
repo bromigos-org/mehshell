@@ -1,5 +1,6 @@
 name: Release
 on:
+  workflow_dispatch:
   push:
     tags: ["v*"]
 permissions:
@@ -15,13 +16,19 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go test -race ./...
+      - name: Check tap token access without printing it
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN"
+          gh api repos/bromigos-org/homebrew-tap --jq '.permissions.push' | grep -qx true
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          HOMEBREW_TAP_TOKEN: ${{ vars.HOMEBREW_PUBLISH_ENABLED == 'true' && secrets.HOMEBREW_TAP_TOKEN || '' }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
   aur:
     needs: release
     runs-on: ubuntu-latest
@@ -30,29 +37,32 @@ jobs:
       - name: Check whether AUR publishing is configured
         id: configured
         env:
-          AUR_KEY: ${{ vars.AUR_PUBLISH_ENABLED == 'true' && secrets.AUR_SSH_PRIVATE_KEY || '' }}
+          AUR_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
         run: |
           if [ -n "$AUR_KEY" ]; then echo 'ready=true' >> "$GITHUB_OUTPUT"; fi
-      - name: Update the package from release checksums
+      - name: Pin the source release
         if: steps.configured.outputs.ready == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download "$GITHUB_REF_NAME" --pattern checksums.txt --dir /tmp
-          sed -i "s/^pkgver=.*/pkgver=${GITHUB_REF_NAME#v}/" aur/PKGBUILD
-          for pair in 'x86_64 amd64' 'aarch64 arm64'; do
-            set -- $pair
-            checksum=$(awk -v file="mehshell_linux_$2.tar.gz" '$2 == file {print $1}' /tmp/checksums.txt)
-            test -n "$checksum"
-            sed -i "s/^sha256sums_$1=.*/sha256sums_$1=('$checksum')/" aur/PKGBUILD
-          done
+          version=${GITHUB_REF_NAME#v}
+          curl -fL "https://github.com/bromigos-org/mehshell/archive/refs/tags/$GITHUB_REF_NAME.tar.gz" -o /tmp/source.tar.gz
+          checksum=$(sha256sum /tmp/source.tar.gz | cut -d' ' -f1)
+          sed -i "s/^pkgver=.*/pkgver=$version/; s/^sha256sums=.*/sha256sums=('$checksum')/" aur/PKGBUILD
+      - name: Build and test before publishing
+        if: steps.configured.outputs.ready == 'true'
+        run: |
+          docker run --rm -v "$PWD/aur:/package" archlinux:base-devel bash -ec '
+            pacman -Syu --noconfirm --needed go git zsh >/dev/null
+            useradd -m builder
+            chown -R builder:builder /package
+            su builder -c "cd /package && makepkg --nodeps --noconfirm && makepkg --printsrcinfo > .SRCINFO"
+          '
       - name: Publish to AUR
         if: steps.configured.outputs.ready == 'true'
         uses: KSXGitHub/github-actions-deploy-aur@v4.1.1
         with:
-          pkgname: mehshell-bin
+          pkgname: mehshell
           pkgbuild: aur/PKGBUILD
-          commit_username: bromigOS
+          commit_username: blackflame
           commit_email: packages@bromigos.org
           ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
           commit_message: "Update to ${{ github.ref_name }}"
