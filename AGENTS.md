@@ -177,7 +177,7 @@ git push origin v<version>
 - **Licence**: MIT, with the original author credit in `LICENSE` and `aur/LICENSE`.
 - **Nerd Font required**: Icons render as boxes without a patched font. `icons=false` switches to text labels.
 - **Zsh only**: `init` subcommand only supports `zsh`. No bash/fish/etc.
-- **CI secrets**: Optional publishing uses `HOMEBREW_TAP_TOKEN` for `bromigos-org/homebrew-tap` and `AUR_SSH_PRIVATE_KEY`. Enable each route with `HOMEBREW_PUBLISH_ENABLED` or `AUR_PUBLISH_ENABLED` only after the new account is ready. Binary releases need no additional secrets.
-- **Versioning**: Releases run only on version tags. Homebrew and AUR publishing are optional until the operator creates their accounts and secrets.
+- **CI secrets**: `HOMEBREW_TAP_TOKEN` writes `bromigos-org/homebrew-tap`. `AUR_SSH_PRIVATE_KEY` publishes the source package `mehshell` as `blackflame`. Never print either secret.
+- **Versioning**: Releases run on new version tags. The tap and AUR publishing are enabled. Build the AUR package before pushing it.
 - **Config format**: `key = value` (key=value also works). Boolean values: `true`/`1`/`yes` → true, anything else → false.
 - **Style values**: Only `lean`, `classic`, `rainbow` are valid. Invalid values default to lean.
