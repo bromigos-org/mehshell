@@ -236,6 +236,7 @@ Developer settings → Personal access tokens → Fine-grained tokens → Genera
 token. Choose `bromigos-org` as Resource owner. Choose Only select repositories and
 select `homebrew-tap`. Grant Repository permissions → Contents → Read and write.
 Leave other permissions at their defaults. Complete any organisation approval.
+See [GitHub’s token guide](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
 Set an expiry and save the token as a secret without putting it in a command:
 
 ```bash
@@ -248,12 +249,12 @@ permission on the tap before releasing. It prints no token value.
 AUR publishing uses `AUR_SSH_PRIVATE_KEY`, already configured for `blackflame`.
 To add a future bromigOS co-maintainer, register at
 [aur.archlinux.org](https://aur.archlinux.org) with `packages@bromigos.org` when
-registration is open. Generate an SSH key, add its public key in the account's
+registration is open. Generate a separate SSH key, add its public key in the account's
 profile, and add the new account as co-maintainer of `mehshell`.
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/aur-bromigos-ci -C packages@bromigos.org
-cat ~/.ssh/aur-bromigos-ci.pub
+ssh-keygen -t ed25519 -f ~/.ssh/aur-bromigos-future -C packages@bromigos.org
+cat ~/.ssh/aur-bromigos-future.pub
 ```
 
 Only the public key goes in the AUR profile. The package repository is
