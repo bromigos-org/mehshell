@@ -2,7 +2,7 @@
 
 A fast zsh prompt engine for [bromigOS](https://bromigos.org), written in Go.
 Created by [blackflame007](https://github.com/blackflame007).
-See the [bromigOS manual](https://bromigos.org/manual/) for desktop setup.
+See the [bromigOS manual](https://github.com/bromigos-org/bromigOS/blob/main/manual/src/shell.md) for desktop setup.
 
 ## Prompt Example
 
