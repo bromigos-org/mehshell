@@ -26,7 +26,7 @@ See the [bromigOS manual](https://github.com/bromigos-org/bromigOS/blob/main/man
 - ⚡ Instant prompt (caches last prompt for zero-latency shell startup).
 - ➡️ Right-aligned segments on the first line.
 - 🎨 Nerd Font icons.
-- 🔄 Live config reloading. Save the file, next prompt picks it up — no shell restart required.
+- 🔄 Segment, style and colour changes reload at the next prompt.
 - ⚙️ Configurable via `~/.config/mehshell/config`.
 
 ## 📥 Install
@@ -148,7 +148,9 @@ This creates `~/.config/mehshell/config` (or `$XDG_CONFIG_HOME/mehshell/config`)
 | `duration`  | `true`  | Command duration (shown when ≥ 3s).                |
 | `time`      | `true`  | Current time.                                      |
 
-Set any option to `false` to disable it. Config changes are picked up live — save the file and your next prompt reflects the update. No shell restart needed.
+Set any segment to `false` to disable it. Segment, style and colour changes appear
+at the next prompt. Restart zsh after changing `transient_prompt`,
+`instant_prompt` or `vi_mode`, which install shell hooks.
 
 To see where your config lives:
 
@@ -227,5 +229,4 @@ MIT
 
 `color_75 = #159b09` replaces a zsh palette index with a hex colour.
 The same form works for any foreground or background index. bromigOS writes
-these values when you change theme. Segment and colour changes reload at the
-next prompt. Restart zsh after changing hook options such as `transient_prompt`.
+these values when you change theme.
