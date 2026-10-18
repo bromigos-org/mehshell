@@ -16,6 +16,10 @@ builds:
 archives:
   - format: tar.gz
     name_template: "mehshell_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - LICENSE-UNICODE
+      - README.md
 
 checksum:
   name_template: "checksums.txt"
@@ -31,6 +35,7 @@ brews:
     license: MIT
     install: |
       bin.install "mehshell"
+      doc.install "LICENSE", "LICENSE-UNICODE", "README.md"
 
 changelog:
   sort: asc

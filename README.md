@@ -10,10 +10,10 @@ See the [bromigOS manual](https://github.com/bromigos-org/bromigOS/blob/main/man
 
 ## ✨ Features
 
-- 🚀 Single Go binary, ~6ms per prompt.
+- 🚀 Single Go binary with bounded local probes.
 - 🔀 All segments run as parallel goroutines.
-- 🔥 Git dirty check with 150ms timeout. It never blocks, even in huge repos.
-- 🧠 Zero-fork git branch detection. It reads .git/HEAD directly.
+- 🔥 Git status check with a 150ms command budget; slow or failed reads show status?.
+- 🧠 Local Git metadata provides branch and operation labels without a network request.
 - 🖥️ OS icon auto-detection for Arch, Ubuntu, Fedora, Debian, NixOS, and macOS.
 - 📦 Runtime version detection for Node.js, Python, Go, Rust, Ruby, and Java when marker files are present.
 - ☁️ Cloud context support for Kubernetes, AWS, Azure, and GCP profiles.
@@ -28,6 +28,9 @@ See the [bromigOS manual](https://github.com/bromigos-org/bromigOS/blob/main/man
 - 🎨 Nerd Font icons.
 - 🔄 Segment, style and colour changes reload at the next prompt.
 - ⚙️ Configurable via `~/.config/mehshell/config`.
+- Narrow-window layouts, counted Git changes, worktree and operation labels.
+- bromigOS branding, SSH/root identity, readable failures and local game-mode state.
+- `doctor`, `preview` and `config set` commands. See [bromigOS integration](docs/bromigos-integration.md).
 
 ## 📥 Install
 
@@ -124,15 +127,18 @@ This creates `~/.config/mehshell/config` (or `$XDG_CONFIG_HOME/mehshell/config`)
 | `instant_prompt`   | `true`  | Show cached prompt immediately on shell startup.                                                                                                                     |
 | `vi_mode`          | `true`  | Swap prompt character on vi keymap change (`❯`/`❮`).                                                                                                                 |
 | `icons`            | `true`  | Show Nerd Font icons. Set `false` for text labels (`go`, `py`, `rs`, etc.).                                                                                          |
+| `brand`            | `auto` | Identity label: `auto`, `bromigos`, `os` or `none`. |
+| `status`           | `true` | Show the exit code after a failed command. |
 | `style`            | `lean`  | Prompt style: `lean` (colored text, no backgrounds), `classic` (powerline with dark grey background), or `rainbow` (powerline with per-segment colored backgrounds). |
 
 ### Left Segments
 
 | Option   | Default | Description                                               |
 | -------- | ------- | --------------------------------------------------------- |
-| `os`     | `true`  | OS icon (Arch, Ubuntu, Fedora, Debian, NixOS, macOS).     |
+| `os`     | `true`  | bromigOS badge or OS identity, chosen by `brand`. |
+| `session` | `true` | Root or SSH session identity. |
 | `dir`    | `true`  | Current working directory.                                |
-| `git`    | `true`  | Git branch and dirty state (`✓`, `+`, `!`, `?`).          |
+| `git`    | `true`  | Branch, change counts, upstream, operations and linked worktrees.          |
 | `node`   | `true`  | Node.js version when `package.json` is present.           |
 | `python` | `true`  | Python version when marker files are found.               |
 | `go`     | `true`  | Go version from `go.mod`.                                 |
@@ -144,6 +150,7 @@ This creates `~/.config/mehshell/config` (or `$XDG_CONFIG_HOME/mehshell/config`)
 
 | Option      | Default | Description                                        |
 | ----------- | ------- | -------------------------------------------------- |
+| `game`      | `true` | GAME while bromigOS has a saved game-mode state. |
 | `conda`     | `true`  | Conda environment name (skips `base`).             |
 | `venv`      | `true`  | Python virtualenv name.                            |
 | `k8s`       | `true`  | Kubernetes context when manifest files are in cwd. |
@@ -166,13 +173,10 @@ To see where your config lives:
 mehshell config path
 ```
 
-## 📊 Benchmarks
+## 📊 Measure your prompt
 
-| Metric            | p10k                   | mehshell |
-| ----------------- | ---------------------- | -------- |
-| Shell startup     | 870ms+                 | 64ms     |
-| Between commands  | 6000ms (with vcs_info) | 28ms     |
-| Prompt generation | ~45ms                  | 6ms      |
+Run `mehshell doctor --timings` inside a project to measure local segments. Results
+depend on repository size, storage and installed runtimes. No remote fetch is made.
 
 ## 🆚 Feature Comparison with Powerlevel10k
 
@@ -182,25 +186,23 @@ mehshell is intentionally minimal. p10k is a full-featured theme engine. Pick th
 | ------------------------ | ------------------------------- | ------------------------------- |
 | **Architecture**         | Single Go binary                | Zsh scripts + gitstatusd daemon |
 | **Dependencies**         | Zero (Go stdlib only)           | gitstatus binary (downloaded)   |
-| **Prompt generation**    | ~6ms                            | ~45ms                           |
-| **Shell startup impact** | ~64ms                           | ~870ms+                         |
 | **Configuration**        | `~/.config/mehshell/config`     | `~/.p10k.zsh` + config wizard   |
-| **Async rendering**      | Goroutines (parallel)           | Zsh workers + gitstatusd        |
+| **Async rendering**      | Goroutines (parallel, bounded commands)           | Zsh workers + gitstatusd        |
 | **Git branch detection** | Zero-fork (reads `.git/HEAD`)   | gitstatusd (libgit2)            |
 | **Git dirty check**      | `git status` with 150ms timeout | Async, never blocks             |
 | **Instant prompt**       | ✓ (cache-based)                 | ✓                               |
 | **Transient prompt**     | ✓                               | ✓                               |
 | **Vi mode**              | ✓ (prompt char swap)            | ✓ (full indicator)              |
 | **Custom segments**      | Add in source                   | Public API (`p10k segment`)     |
-| **Total segments**       | 20                              | 67+                             |
+| **Total segments**       | 23 switches                     | 67+                             |
 
 ### Segment Coverage
 
 | Segment    | mehshell           | p10k                                       |
 | ---------- | ------------------ | ------------------------------------------ |
 | OS icon    | ✓                  | ✓                                          |
-| Directory  | ✓                  | ✓ (smart truncation)                       |
-| Git        | ✓ (branch + dirty) | ✓ (branch, ahead/behind, stash, conflicts) |
+| Directory  | ✓ (adaptive truncation) | ✓ (smart truncation)                       |
+| Git        | ✓ (counts, upstream, operations, worktrees) | ✓ (branch, ahead/behind, stash, conflicts) |
 | Node.js    | ✓                  | ✓ (+ nvm, nodenv, package name)            |
 | Python     | ✓                  | ✓ (+ pyenv, poetry)                        |
 | Go         | ✓                  | ✓ (+ goenv)                                |
@@ -232,6 +234,8 @@ mehshell is intentionally minimal. p10k is a full-featured theme engine. Pick th
 ## 📄 License
 
 MIT
+
+Unicode width data uses Unicode License V3; see [LICENSE-UNICODE](LICENSE-UNICODE).
 
 ### Theme colours
 

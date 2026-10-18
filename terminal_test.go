@@ -60,7 +60,7 @@ func TestRuntimeTerminalFallbackPreservesDesktopSettings(t *testing.T) {
 	// Deterministic clean repository; no external repository or runtime is inspected.
 	for path, value := range map[string]string{
 		".git/HEAD": "ref: refs/heads/example\n", ".git/refs/heads/example": strings.Repeat("a", 40) + "\n",
-		"go.mod": "module example.org/fixture\ngo 1.22\n", "bin/git": "#!/bin/sh\nexit 0\n",
+		"go.mod": "module example.org/fixture\ngo 1.22\n", "bin/git": "#!/bin/sh\nprintf '# branch.oid aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\000# branch.head example\\000'\n",
 	} {
 		if err := os.WriteFile(filepath.Join(home, path), []byte(value), 0700); err != nil {
 			t.Fatal(err)

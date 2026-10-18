@@ -13,6 +13,7 @@ type config struct {
 	ViMode          bool
 	Icons           bool
 	Style           string
+	Brand           string
 	Colours         map[string]string
 	Segments        map[string]bool
 }
@@ -24,6 +25,7 @@ func defaultConfig() config {
 		ViMode:          true,
 		Icons:           true,
 		Style:           "lean",
+		Brand:           "auto",
 		Colours:         make(map[string]string),
 		Segments: map[string]bool{
 			"os": true, "dir": true, "git": true, "node": true,
@@ -31,6 +33,7 @@ func defaultConfig() config {
 			"java": true, "conda": true, "venv": true, "k8s": true,
 			"terraform": true, "docker": true, "aws": true, "azure": true,
 			"gcloud": true, "battery": true, "duration": true, "time": true,
+			"session": true, "status": true, "game": true,
 		},
 	}
 }
@@ -44,11 +47,15 @@ func configPath() string {
 }
 
 func loadConfig() config {
-	cfg := defaultConfig()
-	data, err := os.ReadFile(configPath())
+	data, _, err := readPromptConfig(configPath())
 	if err != nil {
-		return cfg
+		return defaultConfig()
 	}
+	return parseConfig(data)
+}
+
+func parseConfig(data []byte) config {
+	cfg := defaultConfig()
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -75,6 +82,10 @@ func loadConfig() config {
 			switch val {
 			case "lean", "classic", "rainbow":
 				cfg.Style = val
+			}
+		case "brand":
+			if val == "auto" || val == "bromigos" || val == "os" || val == "none" {
+				cfg.Brand = val
 			}
 		default:
 			if strings.HasPrefix(key, "color_") && validColour(val) {
@@ -118,11 +129,18 @@ icons = true
 #   rainbow - powerline arrows with cycling rainbow backgrounds
 style = lean
 
+# auto uses the bromigOS name on bromigOS and the OS icon elsewhere.
+# Other choices: bromigos, os, none. Text consoles use plain text.
+brand = auto
+
 # ── Left segments ───────────────────────────────────────
 
 os = true
 dir = true
 git = true
+session = true
+status = true
+game = true
 node = true
 python = true
 go = true
@@ -162,10 +180,15 @@ func colourPrompt(s string, cfg config) string {
 	if basicTerminal() {
 		return s
 	}
-	for index, colour := range cfg.Colours {
-		for _, prefix := range []string{"%F{", "%K{"} {
-			s = strings.ReplaceAll(s, prefix+index+"}", prefix+colour+"}")
+	var out strings.Builder
+	for _, token := range promptTokens(s) {
+		raw := token.raw
+		if token.text == "" && len(raw) > 4 && (strings.HasPrefix(raw, "%F{") || strings.HasPrefix(raw, "%K{")) {
+			if colour, ok := cfg.Colours[raw[3:len(raw)-1]]; ok && validColour(colour) {
+				raw = raw[:3] + colour + "}"
+			}
 		}
+		out.WriteString(raw)
 	}
-	return s
+	return out.String()
 }

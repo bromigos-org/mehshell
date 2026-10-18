@@ -6,7 +6,7 @@ pkgrel=1
 pkgdesc='Fast parallel zsh prompt engine for bromigOS'
 arch=('x86_64' 'aarch64')
 url='https://github.com/bromigos-org/mehshell'
-license=('MIT')
+license=('MIT' 'Unicode-3.0')
 depends=('zsh')
 makedepends=('go')
 conflicts=('mehshell-bin')
@@ -26,4 +26,5 @@ package() {
   cd "$pkgname-$pkgver"
   install -Dm755 mehshell "$pkgdir/usr/bin/mehshell"
   install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 LICENSE-UNICODE "$pkgdir/usr/share/licenses/$pkgname/LICENSE-UNICODE"
 }

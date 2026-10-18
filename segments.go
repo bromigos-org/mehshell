@@ -43,7 +43,7 @@ func segOS(icons bool) string {
 
 func segDir(cwd, home string) string {
 	dir := cwd
-	if strings.HasPrefix(dir, home) {
+	if home != "" && (dir == home || strings.HasPrefix(dir, home+string(filepath.Separator))) {
 		dir = "~" + dir[len(home):]
 	}
 	if dir == "~/" {
@@ -53,22 +53,7 @@ func segDir(cwd, home string) string {
 }
 
 func segGit(cwd string, icons bool) string {
-	branch, repoDir := gitBranch(cwd)
-	if branch == "" {
-		return ""
-	}
-
-	dirty := gitDirty(repoDir)
-	var result string
-	if icons {
-		result = fc(cBlue, "\uf126 ") + fc(cMagenta, branch)
-	} else {
-		result = fc(cMagenta, branch)
-	}
-	if dirty != "" {
-		result += " " + dirty
-	}
-	return result
+	return formatGitSegment(cwd, icons)
 }
 
 func segNode(cwd string, icons bool) string {

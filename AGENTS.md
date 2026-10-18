@@ -6,7 +6,7 @@
 
 ## OVERVIEW
 
-Fast, parallelized zsh prompt engine. Single Go binary, stdlib-only, ~6ms per prompt. Outputs `PROMPT` variable via `eval "$(mehshell $e $d $COLUMNS)"`. Supports three styles (lean/classic/rainbow), instant prompt, transient prompt, vi mode, icons toggle, and config file at `~/.config/mehshell/config`.
+Fast, parallelized zsh prompt engine. Single Go binary, stdlib-only, bounded local probes per prompt. Outputs `PROMPT` variable via `eval "$(mehshell $e $d $COLUMNS)"`. Supports three styles (lean/classic/rainbow), instant prompt, transient prompt, vi mode, icons toggle, and config file at `~/.config/mehshell/config`.
 
 ## STRUCTURE
 
@@ -14,7 +14,7 @@ Fast, parallelized zsh prompt engine. Single Go binary, stdlib-only, ~6ms per pr
 mehshell/
 ├── main.go              # Entry point, CLI dispatch, segment orchestration (196 lines)
 ├── config.go            # Config struct, loadConfig(), defaultConfig(), configPath() (137 lines)
-├── segments.go          # All 20 seg*() implementations + hasMarkerUp() (532 lines)
+├── segments.go          # Prompt segment implementations + hasMarkerUp() (532 lines)
 ├── render.go            # Color constants, fc(), powerline rendering, visibleWidth() (156 lines)
 ├── git.go               # gitBranch() zero-fork detection, gitDirty() with 150ms timeout (101 lines)
 ├── init.go              # zshInitScript() — generates zsh hooks (55 lines)
@@ -30,7 +30,7 @@ mehshell/
 └── .gitignore           # Excludes: mehshell binary, dist/
 ```
 
-Six-file layout, single `main` package. No `internal/`, `cmd/`, `pkg/` — intentional at ~1200 lines.
+Single `main` package. Keep related prompt, layout and command code in focused files; no external Go dependencies.
 
 ## WHERE TO LOOK
 
@@ -39,8 +39,8 @@ Six-file layout, single `main` package. No `internal/`, `cmd/`, `pkg/` — inten
 | Add/modify prompt segment | `segments.go` for `seg*()` impl, `main.go` for registration | Follow `seg*()` pattern, gate with `on["name"]`, register via `add()` |
 | Add config option | `config.go` — struct + `defaultConfig()` + `loadConfig()` switch | Also update `defaultConfigFile` const and `config.example` |
 | Change rendering / styles | `render.go` | `renderPowerlineLeft/Right()` for classic/rainbow, `joinSegs()` for lean |
-| Prompt layout (line1/line2) | `main.go` lines 162-195 | Style switch at L169, padding calc, `PROMPT` output |
-| Git detection | `git.go` | `gitBranch()` zero-fork via `.git/HEAD`, `gitDirty()` 150ms timeout |
+| Prompt layout (line1/line2) | `main.go`, `layout.go` | `renderPrompt`, adaptive cell widths and safe zsh assignments |
+| Git detection | `git.go` | Local metadata plus bounded porcelain-v2 status; never fetch or refresh the index |
 | Zsh init script | `init.go` | Dynamic generation based on config (transient, instant, vi mode) |
 | Color constants | `render.go` L9-18 | Zsh 256-color codes: `cCyan=75`, `cBlue=39`, etc. |
 | Version injection | `main.go` L13 | `var Version = "dev"`, set via ldflags: `-X main.Version={{.Version}}` |
@@ -113,7 +113,7 @@ add(&left, ORDER, BG_COLOR, func() string { return segFoo(args) })
 | `segJava` | `java -version` | 100ms | `.java-version` file first |
 | `segTerraform` | `terraform version` | 100ms | `.terraform-version` file first |
 | `segBattery` (macOS) | `pmset -g batt` | 100ms | — |
-| `gitDirty` | `git status --porcelain` | **150ms** | Returns `""` on timeout |
+| Git status | `git --no-optional-locks status --porcelain=v2` | **150ms**, 20ms pipe wait | Shows `status?` on failure or timeout |
 
 ### Styles
 | Style | Description | Rendering |
@@ -126,7 +126,7 @@ add(&left, ORDER, BG_COLOR, func() string { return segFoo(args) })
 
 - **Naming**: `seg*()` for segments, `git*()` for git helpers, short vars (`cwd`, `wg`, `mu`, `cfg`, `on`)
 - **Colors**: Use `fc(cColor, text)` helper — never raw `%F{N}` strings
-- **Error handling**: Return `""` on any error. Never panic, never log.
+- **Error handling**: Prompt probes use silent fallbacks; Git uses `status?` when unknown. Explicit diagnostic and config commands may report errors. Never panic.
 - **External commands**: Always wrap in `context.WithTimeout` (100-150ms)
 - **File reads over forks**: Prefer `os.ReadFile` over `exec.Command` when possible
 - **Section headers**: ASCII box drawing (`// ── Section ──────`)
@@ -138,7 +138,7 @@ add(&left, ORDER, BG_COLOR, func() string { return segFoo(args) })
 ## ANTI-PATTERNS
 
 - **No blocking commands**: Every `exec.Command` MUST have a context timeout
-- **No `log.*` or `fmt.Println` to stderr**: Silent operation only (stdout is eval'd by zsh)
+- **Prompt generation is silent on stderr**: Only explicit CLI commands emit diagnostic messages.
 - **Don't print to stdout arbitrarily**: Output is `eval`'d — stray output breaks the shell
 - **No blank identifier for important errors**: Don't use `_ = err` to swallow errors that affect correctness
 - **No external dependencies**: Do not add modules to go.mod
@@ -181,3 +181,11 @@ git push origin v<version>
 - **Versioning**: Releases run on new version tags. The tap and AUR publishing are enabled. Build the AUR package before pushing it.
 - **Config format**: `key = value` (key=value also works). Boolean values: `true`/`1`/`yes` → true, anything else → false.
 - **Style values**: Only `lean`, `classic`, `rainbow` are valid. Invalid values default to lean.
+
+## Prompt integration additions
+
+`ecosystem.go` owns branding, session/root, game-mode and failure indicators.
+`layout.go` and `render.go` fit prompts to terminal cells; Unicode data is licensed in
+`LICENSE-UNICODE`. `commands.go` owns preview and atomic config edits. `doctor.go`
+provides bounded config reads and diagnostics. Keep `docs/bromigos-integration.md`,
+`config.example` and the generated default config in sync with new options.

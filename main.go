@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 )
 
@@ -15,6 +14,13 @@ var Version = "dev"
 func main() {
 	if len(os.Args) > 1 {
 		switch os.Args[1] {
+		case "doctor":
+			os.Exit(runDoctor(os.Args[2:]))
+		case "preview":
+			os.Exit(runPreview(os.Args[2:]))
+		case "--help", "-h":
+			fmt.Println("mehshell: init zsh | doctor [--json] [--timings] | preview [--width N] [--style lean|classic|rainbow] | config init|path|set KEY VALUE | --version")
+			return
 		case "--version", "-v":
 			fmt.Println("mehshell", Version)
 			return
@@ -28,6 +34,9 @@ func main() {
 			}
 			return
 		case "config":
+			if len(os.Args) > 2 && os.Args[2] == "set" {
+				os.Exit(runConfigSet(os.Args[3:]))
+			}
 			if len(os.Args) > 2 && os.Args[2] == "init" {
 				p := configPath()
 				if _, err := os.Stat(p); err == nil {
@@ -46,7 +55,7 @@ func main() {
 			} else if len(os.Args) > 2 && os.Args[2] == "path" {
 				fmt.Println(configPath())
 			} else {
-				fmt.Fprintln(os.Stderr, "usage: mehshell config [init|path]")
+				fmt.Fprintln(os.Stderr, "usage: mehshell config init|path|set KEY VALUE")
 				os.Exit(1)
 			}
 			return
@@ -54,7 +63,6 @@ func main() {
 	}
 
 	cfg := loadConfig()
-	on := cfg.Segments
 
 	exitCode := 0
 	duration := 0
@@ -73,6 +81,14 @@ func main() {
 		columns = 80
 	}
 
+	line1, line2 := renderPrompt(cfg, exitCode, duration, columns)
+	fmt.Printf("_mehshell_transient=$'%s '\n", escShell(colourPrompt(fittedPromptMark(cfg, exitCode, columns), cfg)))
+	fmt.Printf("_mehshell_display=$'\\n%s\\n%s '\n", escShell(colourPrompt(line1, cfg)), escShell(colourPrompt(line2, cfg)))
+	fmt.Println("if [[ -o promptsubst ]]; then PROMPT='${_mehshell_display}'; else PROMPT=$_mehshell_display; fi")
+}
+
+func renderPrompt(cfg config, exitCode, duration, columns int) (string, string) {
+	on := cfg.Segments
 	cwd, _ := os.Getwd()
 	home, _ := os.UserHomeDir()
 
@@ -97,8 +113,14 @@ func main() {
 		icons = false
 		cfg.Style = "console"
 	}
+	if on["session"] {
+		add(&left, -2, 166, segSession)
+	}
+	if on["game"] {
+		add(&right, -1, 166, segGame)
+	}
 	if on["os"] {
-		add(&left, 0, 24, func() string { return segOS(icons) })
+		add(&left, 0, 24, func() string { return segBrand(cfg, icons) })
 	}
 	if on["dir"] {
 		add(&left, 1, 31, func() string { return segDir(cwd, home) })
@@ -163,48 +185,10 @@ func main() {
 	sort.Slice(left, func(i, j int) bool { return left[i].order < left[j].order })
 	sort.Slice(right, func(i, j int) bool { return right[i].order < right[j].order })
 
-	var line1, line2 string
-
-	charColor := cGreen
-	if exitCode != 0 {
-		charColor = cRed
+	line1 := layoutPrompt(left, right, columns, cfg.Style)
+	line2 := fittedPromptMark(cfg, exitCode, columns)
+	if cfg.Style == "lean" && visibleWidth(line2)+4 <= columns {
+		line2 = fc(cCyan, "╰─") + line2
 	}
-
-	switch cfg.Style {
-	case "console":
-		leftStr := joinSegs(left, " ")
-		rightStr := joinSegs(right, "  ")
-		pad := columns - visibleWidth(leftStr) - visibleWidth(rightStr)
-		if pad < 1 {
-			pad = 1
-		}
-		line1 = leftStr + strings.Repeat(" ", pad) + rightStr
-		line2 = fc(charColor, promptArrow())
-	case "classic", "rainbow":
-		rainbow := cfg.Style == "rainbow"
-		lStr := renderPowerlineLeft(left, rainbow)
-		rStr := renderPowerlineRight(right, rainbow)
-		pad := columns - visibleWidth(lStr) - visibleWidth(rStr)
-		if pad < 1 {
-			pad = 1
-		}
-		line1 = lStr + strings.Repeat(" ", pad) + rStr
-		line2 = fc(charColor, "❯")
-	default:
-		leftStr := joinSegs(left, " ")
-		rightStr := joinSegs(right, "  ")
-		prefix := fc(cCyan, "╭─") + " "
-		prefixVis := 3
-		pad := columns - prefixVis - visibleWidth(leftStr) - visibleWidth(rightStr)
-		if pad < 1 {
-			pad = 1
-		}
-		line1 = prefix + leftStr + strings.Repeat(" ", pad) + rightStr
-		line2 = fc(cCyan, "╰─") + fc(charColor, "❯")
-	}
-
-	l1 := escShell(colourPrompt(line1, cfg))
-	l2 := escShell(colourPrompt(line2, cfg))
-	fmt.Printf("_mehshell_transient=$'%s '\n", escShell(colourPrompt(fc(cGreen, promptArrow()), cfg)))
-	fmt.Printf("PROMPT=$'\\n%s\\n%s '\n", l1, l2)
+	return line1, fitPromptText(line2, columns-2)
 }

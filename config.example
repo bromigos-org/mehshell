@@ -26,11 +26,18 @@ icons = true
 #   rainbow - powerline arrows with per-segment colored backgrounds
 style = lean
 
+# auto uses bromigOS branding when its shell defaults are installed.
+# Other choices: bromigos, os, none. Text consoles use plain text.
+brand = auto
+
 # ── Left segments ───────────────────────────────────────
 
 os = true
 dir = true
 git = true
+session = true
+status = true
+game = true
 node = true
 python = true
 go = true
