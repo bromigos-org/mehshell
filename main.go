@@ -93,6 +93,10 @@ func main() {
 	}
 
 	icons := cfg.Icons
+	if basicTerminal() {
+		icons = false
+		cfg.Style = "console"
+	}
 	if on["os"] {
 		add(&left, 0, 24, func() string { return segOS(icons) })
 	}
@@ -167,6 +171,15 @@ func main() {
 	}
 
 	switch cfg.Style {
+	case "console":
+		leftStr := joinSegs(left, " ")
+		rightStr := joinSegs(right, "  ")
+		pad := columns - visibleWidth(leftStr) - visibleWidth(rightStr)
+		if pad < 1 {
+			pad = 1
+		}
+		line1 = leftStr + strings.Repeat(" ", pad) + rightStr
+		line2 = fc(charColor, promptArrow())
 	case "classic", "rainbow":
 		rainbow := cfg.Style == "rainbow"
 		lStr := renderPowerlineLeft(left, rainbow)
@@ -192,6 +205,6 @@ func main() {
 
 	l1 := escShell(colourPrompt(line1, cfg))
 	l2 := escShell(colourPrompt(line2, cfg))
-	fmt.Printf("_mehshell_transient=$'%s '\n", escShell(colourPrompt("%F{76}❯%f", cfg)))
+	fmt.Printf("_mehshell_transient=$'%s '\n", escShell(colourPrompt(fc(cGreen, promptArrow()), cfg)))
 	fmt.Printf("PROMPT=$'\\n%s\\n%s '\n", l1, l2)
 }

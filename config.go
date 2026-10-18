@@ -109,6 +109,7 @@ instant_prompt = true
 vi_mode = true
 
 # Show Nerd Font icons. Set to false for text labels instead.
+# TERM=linux and TERM=dumb always use text labels and a plain prompt layout.
 icons = true
 
 # Prompt style: lean, classic, or rainbow.
@@ -158,6 +159,9 @@ func validColour(s string) bool {
 }
 
 func colourPrompt(s string, cfg config) string {
+	if basicTerminal() {
+		return s
+	}
 	for index, colour := range cfg.Colours {
 		for _, prefix := range []string{"%F{", "%K{"} {
 			s = strings.ReplaceAll(s, prefix+index+"}", prefix+colour+"}")

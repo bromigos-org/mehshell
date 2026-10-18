@@ -17,6 +17,7 @@ instant_prompt = true
 vi_mode = true
 
 # Show Nerd Font icons. Set to false for text labels instead.
+# TERM=linux and TERM=dumb always use text labels and a plain prompt layout.
 icons = true
 
 # Prompt style: lean, classic, or rainbow.

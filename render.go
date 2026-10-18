@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"unicode/utf8"
 )
@@ -17,11 +18,46 @@ const (
 	cGray    = 242
 )
 
+// The Linux virtual console uses a small bitmap font and an eight-colour palette.
+// Keep this independent of saved options so the same config works in desktop shells.
+func basicTerminal() bool {
+	term := os.Getenv("TERM")
+	return term == "linux" || term == "dumb"
+}
+
+func promptArrow() string {
+	if basicTerminal() {
+		return ">"
+	}
+	return "❯"
+}
+
 func fc(color int, s string) string {
 	if s == "" {
 		return ""
 	}
 	s = strings.ReplaceAll(s, "%", "%%")
+	if os.Getenv("TERM") == "dumb" {
+		return s
+	}
+	if os.Getenv("TERM") == "linux" {
+		switch color {
+		case cCyan:
+			color = 6
+		case cBlue:
+			color = 4
+		case cMagenta:
+			color = 5
+		case cGreen:
+			color = 2
+		case cRed:
+			color = 1
+		case cYellow, cOrange:
+			color = 3
+		default:
+			color = 7
+		}
+	}
 	return fmt.Sprintf("%%F{%d}%s%%f", color, s)
 }
 

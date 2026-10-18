@@ -92,6 +92,20 @@ Add this to your `.zshrc`:
 eval "$(mehshell init zsh)"
 ```
 
+### Linux text consoles
+
+On a Linux text console (`TERM=linux`), mehshell automatically uses text labels,
+plain `>` and `<` prompt marks, and the console's basic eight colours. The prompt
+uses a plain layout even if your desktop style is `classic` or `rainbow`.
+With `TERM=dumb`, it also leaves out colour formatting.
+
+Your saved font, icon, style and colour settings stay unchanged. Desktop terminals
+keep using them. Normal, instant, transient and vi-mode prompts use the same fallback;
+console and desktop prompts have separate caches. You do not need to change your
+`mehshell init zsh` line. mehshell does not load or change the console font.
+
+[Terminal support](docs/terminal-support.md) explains the behaviour and its tests.
+
 ## 🛠️ Configuration
 
 Generate a default config file:
@@ -212,7 +226,7 @@ mehshell is intentionally minimal. p10k is a full-featured theme engine. Pick th
 ## 📋 Requirements
 
 - Go 1.22+ (build only)
-- Nerd Font
+- A Nerd Font for optional desktop-terminal icons; text consoles use text labels
 - zsh
 
 ## 📄 License
@@ -223,7 +237,8 @@ MIT
 
 `color_75 = #159b09` replaces a zsh palette index with a hex colour.
 The same form works for any foreground or background index. bromigOS writes
-these values when you change theme.
+these values when you change theme. Linux text consoles use basic colours instead;
+`TERM=dumb` disables colour formatting.
 
 ## Publishing releases
 

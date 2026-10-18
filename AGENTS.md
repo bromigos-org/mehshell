@@ -175,7 +175,7 @@ git push origin v<version>
 - **Tests**: `go test -race ./...` covers config reload, colour validation and rendering.
 - **No linter config**: No golangci-lint, relies on `gofmt` defaults.
 - **Licence**: MIT, with the original author credit in `LICENSE` and `aur/LICENSE`.
-- **Nerd Font required**: Icons render as boxes without a patched font. `icons=false` switches to text labels.
+- **Terminal fallback**: `TERM=linux` uses text labels, ASCII prompt marks and eight colours. `TERM=dumb` also disables colours. Their instant caches are separate from desktop caches. Desktop icons need a Nerd Font; `icons=false` switches those to text labels.
 - **Zsh only**: `init` subcommand only supports `zsh`. No bash/fish/etc.
 - **CI secrets**: `HOMEBREW_TAP_TOKEN` writes `bromigos-org/homebrew-tap`. `AUR_SSH_PRIVATE_KEY` publishes the source package `mehshell` as `blackflame`. Never print either secret.
 - **Versioning**: Releases run on new version tags. The tap and AUR publishing are enabled. Build the AUR package before pushing it.

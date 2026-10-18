@@ -8,6 +8,7 @@ import (
 )
 
 func TestConfigReloadAndSafeColours(t *testing.T) {
+	t.Setenv("TERM", "xterm-kitty")
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)
 	if err := os.MkdirAll(filepath.Join(dir, "mehshell"), 0700); err != nil {
@@ -30,6 +31,7 @@ func TestConfigReloadAndSafeColours(t *testing.T) {
 	}
 }
 func TestStylesAndWidths(t *testing.T) {
+	t.Setenv("TERM", "xterm-kitty")
 	for _, rainbow := range []bool{false, true} {
 		s := renderPowerlineLeft([]seg{{text: fc(cBlue, "50%"), bg: 31}}, rainbow)
 		if visibleWidth(s) != 6 || !strings.Contains(s, "50%%") {
@@ -39,6 +41,7 @@ func TestStylesAndWidths(t *testing.T) {
 }
 
 func TestTransientUsesReloadedColour(t *testing.T) {
+	t.Setenv("TERM", "xterm-kitty")
 	cfg := defaultConfig()
 	cfg.Colours["76"] = "#39ff14"
 	init := zshInitScript(cfg)

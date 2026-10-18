@@ -84,6 +84,9 @@ func gitDirty(repoDir string) string {
 	}
 
 	if !staged && !modified && !untracked {
+		if basicTerminal() {
+			return fc(cGreen, "clean")
+		}
 		return fc(cGreen, "✓")
 	}
 
