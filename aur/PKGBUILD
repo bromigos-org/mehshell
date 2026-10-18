@@ -1,7 +1,7 @@
 # Maintainer: bromigOS <packages@bromigos.org>
 # Contributor: blackflame
 pkgname=mehshell
-pkgver=0.2.2
+pkgver=0.2.5
 pkgrel=1
 pkgdesc='Fast parallel zsh prompt engine for bromigOS'
 arch=('x86_64' 'aarch64')
@@ -12,7 +12,7 @@ makedepends=('go')
 conflicts=('mehshell-bin')
 options=('!debug')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('f370f123d04110f8d660f7b18036681a1f4787eaff1945006faa13005ba2cc62')
+sha256sums=('56f807375795e5f4e4064012d81db012103a3a8add6e35b11212db7f7ae01791')
 build() {
   cd "$pkgname-$pkgver"
   CGO_ENABLED=0 go build -trimpath -ldflags="-s -w -X main.Version=$pkgver" -o mehshell .
