@@ -100,7 +100,12 @@ func segGame() string {
 
 func promptMark(cfg config, code int) string {
 	colour, label := cGreen, ""
-	if code != 0 {
+	if code == 130 {
+		colour = cGray
+		if cfg.Segments["status"] {
+			label = "interrupted "
+		}
+	} else if code != 0 {
 		colour = cRed
 		if cfg.Segments["status"] {
 			label = fmt.Sprintf("exit:%d ", code)
@@ -113,11 +118,13 @@ func fittedPromptMark(cfg config, code, columns int) string {
 	mark := promptMark(cfg, code)
 	if visibleWidth(mark) > columns-2 {
 		colour := cGreen
-		if code != 0 {
+		if code == 130 {
+			colour = cGray
+		} else if code != 0 {
 			colour = cRed
 		}
 		label := promptArrow()
-		if code != 0 && cfg.Segments["status"] && columns >= 4 {
+		if code != 0 && code != 130 && cfg.Segments["status"] && columns >= 4 {
 			label = "!" + label
 		}
 		mark = fc(colour, label)

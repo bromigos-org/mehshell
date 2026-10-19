@@ -43,21 +43,29 @@ func zshInitScriptForBinary(cfg config, bin string) string {
 	b.WriteString("  return 0\n}\n")
 	if cfg.InstantPrompt {
 		b.WriteString(fmt.Sprintf("if [[ -z ${_mehshell_initialized:-} && -r \"%s\" ]]; then\n", cache))
-		b.WriteString(fmt.Sprintf("  source \"%s\"\n", cache))
-		b.WriteString("  _mehshell_publish_prompt ${options[promptsubst]}\nfi\n")
+		// Older caches can contain another command's failure. Only reuse caches
+		// written by the successful-command-only policy below.
+		b.WriteString("  local _mehshell_cache_header\n")
+		b.WriteString(fmt.Sprintf("  IFS= read -r _mehshell_cache_header < \"%s\"\n", cache))
+		b.WriteString("  if [[ $_mehshell_cache_header == '# mehshell instant prompt v2' ]]; then\n")
+		b.WriteString(fmt.Sprintf("    source \"%s\"\n", cache))
+		b.WriteString("    _mehshell_publish_prompt ${options[promptsubst]}\n  fi\n")
+		b.WriteString("  unset _mehshell_cache_header\nfi\n")
 	}
 	b.WriteString("typeset -g _mehshell_initialized=1\n")
 	b.WriteString("_mehshell_preexec() { _mehshell_ts=$EPOCHSECONDS; return 0 }\n")
 	b.WriteString("_mehshell_precmd() {\n")
 	b.WriteString("  local e=$? d=0 _mehshell_subst=${options[promptsubst]}\n")
 	b.WriteString("  emulate -L zsh\n")
-	b.WriteString("  (( _mehshell_ts > 0 )) && d=$(( EPOCHSECONDS - _mehshell_ts ))\n")
+	b.WriteString("  if (( _mehshell_ts > 0 )); then d=$(( EPOCHSECONDS - _mehshell_ts )); else e=0; fi\n")
 	b.WriteString("  _mehshell_ts=0\n")
 	b.WriteString(fmt.Sprintf("  local _out=\"$(%s $e $d $COLUMNS)\"\n", quotedBin))
 	b.WriteString("  eval \"$_out\"\n")
 	b.WriteString("  _mehshell_publish_prompt $_mehshell_subst\n")
 	if cfg.InstantPrompt {
-		b.WriteString(fmt.Sprintf("  print -r -- \"$_out\" >| \"%s\" 2>/dev/null\n", cache))
+		b.WriteString("  if (( e == 0 )); then\n")
+		b.WriteString(fmt.Sprintf("    { print -r -- '# mehshell instant prompt v2'; print -r -- \"$_out\"; } >| \"%s\" 2>/dev/null\n", cache))
+		b.WriteString("  fi\n")
 	}
 	b.WriteString("  return 0\n}\n")
 	// Upgrade a former direct widget binding only when it is still ours. The

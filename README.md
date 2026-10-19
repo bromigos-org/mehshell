@@ -23,7 +23,7 @@ See the [bromigOS manual](https://github.com/bromigos-org/bromigOS/blob/main/man
 - ⏱️ Command duration (3s+), time, and exit code coloring.
 - ✏️ Vi mode indicator (swaps prompt char on keymap change).
 - 🪄 Transient prompt (collapses previous prompt on Enter).
-- ⚡ Instant prompt (caches last prompt for zero-latency shell startup).
+- ⚡ Instant prompt (caches a successful prompt for zero-latency shell startup).
 - ➡️ Right-aligned segments on the first line.
 - 🎨 Nerd Font icons.
 - 🔄 Segment, style and colour changes reload at the next prompt.
@@ -94,6 +94,11 @@ Add this to your `.zshrc`:
 ```zsh
 eval "$(mehshell init zsh)"
 ```
+
+A red `exit:N` reports a command that failed in this shell. Opening a terminal,
+pressing Enter on an empty line, or cancelling unfinished input with Ctrl+C leaves
+a normal prompt. Interrupting a running command shows a grey `interrupted` label.
+After updating mehshell, open a new shell or run the init line again to load its hooks.
 
 ### Linux text consoles
 

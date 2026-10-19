@@ -70,6 +70,7 @@ zstyle -a zle-keymap-select widgets selected_hooks
 print -r -- "keymap=${(j:,:)selected_hooks}"
 zstyle -a zle-line-finish widgets finish_hooks
 print -r -- "finish=${(j:,:)finish_hooks}"
+_mehshell_preexec
 _mehshell_ts=$(( EPOCHSECONDS - 7 ))
 COLUMNS=82
 (exit 17)
@@ -120,7 +121,7 @@ print -r -- "finish=${(j:,:)finish_hooks}"
 
 func TestReloadDoesNotSourceStaleInstantCache(t *testing.T) {
 	home, bin := hookSandbox(t)
-	if err := os.WriteFile(filepath.Join(home, "mehshell-prompt-cache-dumb"), []byte("PROMPT='cached > '\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(home, "mehshell-prompt-cache-dumb"), []byte("# mehshell instant prompt v2\nPROMPT='cached > '\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	init := zshInitScriptForBinary(defaultConfig(), bin)
@@ -228,7 +229,7 @@ func TestPromptSubstitutionNeverExecutesDirectoryText(t *testing.T) {
 			if term != "xterm-kitty" {
 				cache += "-" + term
 			}
-			if err := os.WriteFile(filepath.Join(home, cache), []byte(generated), 0600); err != nil {
+			if err := os.WriteFile(filepath.Join(home, cache), []byte("# mehshell instant prompt v2\n"+generated), 0600); err != nil {
 				t.Fatal(err)
 			}
 			for _, option := range []string{"setopt", "unsetopt"} {

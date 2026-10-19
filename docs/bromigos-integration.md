@@ -25,6 +25,9 @@ shows the identity segment.
 
 SSH sessions show `ssh:user@host`; root shows `ROOT`. Ordinary local sessions omit
 the extra identity. A failed command shows `exit:N`, including on plain terminals.
+Only a command executed in the current shell supplies that status. Shell startup,
+blank Enter and Ctrl+C while editing clear a stale failure. Interrupting a running
+command (status 130) shows a grey `interrupted` label instead of an error.
 `GAME` appears while bromigOS's local game-mode record is present. No compositor,
 server or API is contacted for these indicators. Disable them separately with
 `session = false`, `status = false` or `game = false`.

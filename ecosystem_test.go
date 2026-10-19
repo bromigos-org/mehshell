@@ -71,6 +71,28 @@ func TestGameMarkerAndTextFailure(t *testing.T) {
 	}
 }
 
+func TestInterruptedCommandIsNeutralAcrossTerminals(t *testing.T) {
+	for _, term := range []string{"xterm-kitty", "linux", "dumb"} {
+		t.Run(term, func(t *testing.T) {
+			t.Setenv("TERM", term)
+			cfg := defaultConfig()
+			if got := promptMark(cfg, 130); got != fc(cGray, "interrupted "+promptArrow()) {
+				t.Fatalf("interruption should be neutral: %q", got)
+			}
+			if got := fittedPromptMark(cfg, 130, 4); got != fc(cGray, promptArrow()) {
+				t.Fatalf("narrow interruption should not use a failure marker: %q", got)
+			}
+			if got := promptMark(cfg, 1); got != fc(cRed, "exit:1 "+promptArrow()) {
+				t.Fatalf("ordinary failure lost its status: %q", got)
+			}
+			cfg.Segments["status"] = false
+			if got := promptMark(cfg, 130); got != fc(cGray, promptArrow()) {
+				t.Fatalf("interruption ignored the status option: %q", got)
+			}
+		})
+	}
+}
+
 func TestConfigSetPreservesThemeAndSymlink(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("XDG_CONFIG_HOME", dir)

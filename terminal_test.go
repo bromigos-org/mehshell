@@ -141,7 +141,7 @@ func TestTerminalHooksIsolateCacheAndUseAsciiMarks(t *testing.T) {
 				t.Fatal(err)
 			}
 			cache := filepath.Join(home, "mehshell-prompt-cache-"+term)
-			if err := os.WriteFile(cache, []byte("PROMPT='TTY-CACHE'\n"), 0600); err != nil {
+			if err := os.WriteFile(cache, []byte("# mehshell instant prompt v2\nPROMPT='TTY-CACHE'\n"), 0600); err != nil {
 				t.Fatal(err)
 			}
 			cfg := defaultConfig()

@@ -18,7 +18,10 @@ font.
 ## Instant prompt caches
 
 Startup reads the cache for its terminal class. It never reads a desktop prompt into
-a Linux console or dumb terminal. Subsequent prompts write the matching cache.
+a Linux console or dumb terminal. Only successful prompts write the matching cache,
+so another terminal's failed or interrupted command cannot appear at startup. Older
+caches without the current format marker are ignored and replaced by the first
+successful prompt.
 
 | Terminal | Cache filename under `$XDG_CACHE_HOME` or `~/.cache` |
 |---|---|
