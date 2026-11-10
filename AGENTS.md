@@ -12,20 +12,29 @@ Fast, parallelized zsh prompt engine. Single Go binary, stdlib-only, bounded loc
 
 ```
 mehshell/
-├── main.go              # Entry point, CLI dispatch, segment orchestration (196 lines)
-├── config.go            # Config struct, loadConfig(), defaultConfig(), configPath() (137 lines)
-├── segments.go          # Prompt segment implementations + hasMarkerUp() (532 lines)
-├── render.go            # Color constants, fc(), powerline rendering, visibleWidth() (156 lines)
-├── git.go               # gitBranch() zero-fork detection, gitDirty() with 150ms timeout (101 lines)
-├── init.go              # zshInitScript() — generates zsh hooks (55 lines)
+├── main.go              # Entry point, CLI dispatch, segment orchestration
+├── config.go            # Config struct, loadConfig(), defaultConfig(), configPath()
+├── segments.go          # Prompt segment implementations + hasMarkerUp()
+├── ecosystem.go         # Brand, session/root, game-mode and failure indicators
+├── render.go            # Color constants, fc(), powerline rendering, cell widths
+├── layout.go            # Fits line 1 to the terminal width; shortens and drops segments
+├── git.go               # findGitRepo() zero-fork detection, readGitStatus() with 150ms timeout
+├── init.go              # zshInitScript() — generates zsh hooks
+├── commands.go          # preview and config set
+├── doctor.go            # doctor, bounded config reads
+├── *_test.go            # go test -race ./... (hook tests need zsh)
 ├── go.mod               # Go 1.22, zero dependencies
 ├── config.example       # Reference config with all options documented
 ├── .goreleaser.yml      # Cross-platform release builds + Homebrew tap
 ├── .github/workflows/
-│   └── release.yml      # Tag → GoReleaser → optional AUR publish pipeline
+│   ├── ci.yml           # Build, vet and tests on every push and pull request
+│   └── release.yml      # Tag → tests → GoReleaser → optional AUR publish pipeline
 ├── aur/
 │   ├── PKGBUILD         # Arch Linux package definition
+│   ├── .SRCINFO         # Not read by the release: the AUR action generates the published one
 │   └── LICENSE          # MIT license for AUR
+├── docs/                # bromigOS integration, terminal support, screenshot
+├── LICENSE, LICENSE-UNICODE
 ├── README.md
 └── .gitignore           # Excludes: mehshell binary, dist/
 ```
@@ -42,22 +51,22 @@ Single `main` package. Keep related prompt, layout and command code in focused f
 | Prompt layout (line1/line2) | `main.go`, `layout.go` | `renderPrompt`, adaptive cell widths and safe zsh assignments |
 | Git detection | `git.go` | Local metadata plus bounded porcelain-v2 status; never fetch or refresh the index |
 | Zsh init script | `init.go` | Dynamic generation based on config (transient, instant, vi mode) |
-| Color constants | `render.go` L9-18 | Zsh 256-color codes: `cCyan=75`, `cBlue=39`, etc. |
-| Version injection | `main.go` L13 | `var Version = "dev"`, set via ldflags: `-X main.Version={{.Version}}` |
+| Color constants | top of `render.go` | Zsh 256-color codes: `cCyan=75`, `cBlue=39`, etc. |
+| Version injection | `main.go` | `var Version = "dev"`, set via ldflags: `-X main.Version={{.Version}}` |
 | Release config | `.goreleaser.yml` | Linux + macOS, amd64 + arm64, CGO off, Homebrew tap |
-| CI pipeline | `.github/workflows/release.yml` | Checks on push; tag → GoReleaser → optional AUR publish |
+| CI pipeline | `.github/workflows/ci.yml`, `release.yml` | `ci.yml` checks pushes and pull requests; `release.yml`: tag → tests → GoReleaser → optional AUR publish |
 | AUR package | `aur/PKGBUILD` | Update `pkgver` manually or via CI |
 
 ## ARCHITECTURE
 
 ### Execution Flow
-1. CLI dispatch: `--version`, `init zsh`, `config init|path`, or prompt generation
+1. CLI dispatch: `--version`, `init zsh`, `config init|path|set`, `doctor`, `preview`, or prompt generation
 2. `loadConfig()` reads `~/.config/mehshell/config`, merges with defaults
 3. `add()` closure spawns goroutines for each enabled segment via `sync.WaitGroup`
 4. Each `seg*()` returns formatted string or `""` (skip)
 5. Mutex-protected append to `left`/`right` slices, sorted by `order` after `wg.Wait()`
 6. Style switch: lean (box-drawing + text), classic (powerline dark bg), rainbow (powerline per-segment colors)
-7. Right-aligned line 1 + prompt char line 2 → `PROMPT=$'...'`
+7. `layoutPrompt()` fits right-aligned line 1 to the width; with the prompt char on line 2 it is printed as `_mehshell_display=$'...'`, plus `_mehshell_transient` and the `PROMPT` assignment
 
 ### Segment Registration Pattern
 ```go
@@ -76,32 +85,38 @@ add(&left, ORDER, BG_COLOR, func() string { return segFoo(args) })
 | `config.go` | Configuration — loading, parsing, defaults | `config` struct, `loadConfig()`, `configPath()` |
 | `segments.go` | Segments — all 20 implementations | `seg*()` functions, `hasMarkerUp()` |
 | `render.go` | Rendering — colors, styles, width calculation | `fc()`, `seg` struct, `renderPowerline*()`, `visibleWidth()` |
-| `git.go` | Git — branch detection, dirty state | `gitBranch()`, `gitDirty()` |
+| `git.go` | Git — branch detection, counted status | `findGitRepo()`, `readGitStatus()`, `formatGitSegment()` |
 | `init.go` | Zsh — hook script generation | `zshInitScript()` |
+| `ecosystem.go` | Brand, session, game mode, prompt mark | `segBrand()`, `segSession()`, `segGame()`, `promptMark()` |
+| `layout.go` | Width fitting | `layoutPrompt()`, `shortenSegment()`, `fitPromptText()` |
+| `commands.go` | `preview`, `config set` | `runPreview()`, `setOption()` |
+| `doctor.go` | `doctor`, bounded config read | `runDoctor()`, `readPromptConfig()` |
 
 ### Segment Functions
-| Function | File:Line | Side | Order | BG | Trigger |
+| Function | File | Side | Order | BG | Trigger |
 |----------|-----------|------|-------|----|---------|
-| `segOS` | segments.go:16 | left | 0 | 24 | Always (reads `/etc/os-release`); hidden when `icons=false` |
-| `segDir` | segments.go:44 | left | 1 | 31 | Always |
-| `segGit` | segments.go:55 | left | 2 | 97 | `.git` found walking up |
-| `segNode` | segments.go:74 | left | 3 | 34 | `package.json` in cwd |
-| `segPython` | segments.go:98 | left | 4 | 136 | Marker files walking up |
-| `segGo` | segments.go:121 | left | 5 | 37 | `go.mod` in cwd |
-| `segRust` | segments.go:142 | left | 6 | 130 | `Cargo.toml` in cwd |
-| `segRuby` | segments.go:184 | left | 7 | 124 | Marker files walking up |
-| `segJava` | segments.go:210 | left | 8 | 94 | `pom.xml`, `build.gradle`, `build.gradle.kts` in cwd |
-| `segConda` | segments.go:245 | right | 0 | 34 | `$CONDA_DEFAULT_ENV` set (not "base") |
-| `segVenv` | segments.go:257 | right | 1 | 34 | `$VIRTUAL_ENV` set |
-| `segK8s` | segments.go:269 | right | 2 | 25 | K8s manifest in cwd (skaffold, helmfile, Chart, kustomization) |
-| `segTerraform` | segments.go:306 | right | 3 | 57 | `.tf` files in cwd |
-| `segDocker` | segments.go:341 | right | 4 | 25 | Dockerfile/compose in cwd |
-| `segAWS` | segments.go:366 | right | 5 | 166 | `$AWS_PROFILE` set |
-| `segAzure` | segments.go:378 | right | 6 | 25 | `$AZURE_DEFAULTS_GROUP` set |
-| `segGCloud` | segments.go:390 | right | 7 | 34 | `$CLOUDSDK_CORE_PROJECT` / `$GCLOUD_PROJECT` / `$GOOGLE_CLOUD_PROJECT` set |
-| `segBattery` | segments.go:408 | right | 8 | 22 | Battery present (Linux `/sys/`, macOS `pmset`) |
-| `segDuration` | segments.go:498 | right | 9 | 136 | Duration ≥ 3s |
-| `segTime` | segments.go:514 | right | 10 | 238 | Always |
+| `segSession` | ecosystem.go | left | -2 | 166 | Root or SSH session |
+| `segBrand` → `segOS` | ecosystem.go, segments.go | left | 0 | 24 | `brand` picks the bromigOS badge or the OS icon (reads `/etc/os-release`); the icon is hidden when `icons=false` |
+| `segDir` | segments.go | left | 1 | 31 | Always |
+| `segGit` | segments.go | left | 2 | 97 | `.git` found walking up |
+| `segNode` | segments.go | left | 3 | 34 | `package.json` in cwd |
+| `segPython` | segments.go | left | 4 | 136 | Marker files walking up |
+| `segGo` | segments.go | left | 5 | 37 | `go.mod` in cwd |
+| `segRust` | segments.go | left | 6 | 130 | `Cargo.toml` in cwd |
+| `segRuby` | segments.go | left | 7 | 124 | Marker files walking up |
+| `segJava` | segments.go | left | 8 | 94 | `pom.xml`, `build.gradle`, `build.gradle.kts` in cwd |
+| `segGame` | ecosystem.go | right | -1 | 166 | bromigOS game-mode marker file present |
+| `segConda` | segments.go | right | 0 | 34 | `$CONDA_DEFAULT_ENV` set (not "base") |
+| `segVenv` | segments.go | right | 1 | 34 | `$VIRTUAL_ENV` set |
+| `segK8s` | segments.go | right | 2 | 25 | K8s manifest in cwd (skaffold, helmfile, Chart, kustomization) |
+| `segTerraform` | segments.go | right | 3 | 57 | `.tf` files in cwd |
+| `segDocker` | segments.go | right | 4 | 25 | Dockerfile/compose in cwd |
+| `segAWS` | segments.go | right | 5 | 166 | `$AWS_PROFILE` set |
+| `segAzure` | segments.go | right | 6 | 25 | `$AZURE_DEFAULTS_GROUP` set |
+| `segGCloud` | segments.go | right | 7 | 34 | `$CLOUDSDK_CORE_PROJECT` / `$GCLOUD_PROJECT` / `$GOOGLE_CLOUD_PROJECT` set |
+| `segBattery` | segments.go | right | 8 | 22 | Battery present (Linux `/sys/`, macOS `pmset`) |
+| `segDuration` | segments.go | right | 9 | 136 | Duration ≥ 3s |
+| `segTime` | segments.go | right | 10 | 238 | Always |
 
 ### External Commands & Timeouts
 | Segment | Command | Timeout | Fallback |
