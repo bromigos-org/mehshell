@@ -86,11 +86,6 @@ func findGitRepo(cwd string) gitRepo {
 	return gitRepo{}
 }
 
-func gitBranch(cwd string) (branch string, repoDir string) {
-	repo := findGitRepo(cwd)
-	return repo.branch, repo.root
-}
-
 type gitStatus struct {
 	branch, oid                                           string
 	staged, modified, untracked, conflicts, ahead, behind int
@@ -251,8 +246,6 @@ func gitStatusText(state gitStatus, icons bool) string {
 	}
 	return strings.Join(parts, " ")
 }
-
-func gitDirty(repoDir string) string { return gitStatusText(readGitStatus(repoDir), !basicTerminal()) }
 
 func gitLabel(text string) string {
 	return strings.Map(func(r rune) rune {

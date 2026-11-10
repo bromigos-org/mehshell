@@ -125,8 +125,8 @@ icons = true
 
 # Prompt style: lean, classic, or rainbow.
 #   lean    - colored text, no backgrounds (default)
-#   classic - powerline arrows with segment-colored backgrounds
-#   rainbow - powerline arrows with cycling rainbow backgrounds
+#   classic - powerline arrows with dark grey background
+#   rainbow - powerline arrows with per-segment colored backgrounds
 style = lean
 
 # auto uses the bromigOS name on bromigOS and the OS icon elsewhere.
