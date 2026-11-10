@@ -264,24 +264,37 @@ func segK8s(cwd, home string, icons bool) string {
 		return ""
 	}
 
-	kubeconfig := os.Getenv("KUBECONFIG")
-	if kubeconfig == "" {
-		kubeconfig = filepath.Join(home, ".kube", "config")
-	}
-	data, err := os.ReadFile(kubeconfig)
-	if err != nil {
+	ctx := kubeContext(os.Getenv("KUBECONFIG"), home)
+	if ctx == "" {
 		return ""
 	}
-	for _, line := range strings.Split(string(data), "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "current-context:") {
-			ctx := strings.TrimSpace(strings.TrimPrefix(line, "current-context:"))
-			if ctx != "" && ctx != "\"\"" {
-				prefix := "k8s "
-				if icons {
-					prefix = "\u2388 "
+	prefix := "k8s "
+	if icons {
+		prefix = "\u2388 "
+	}
+	return fc(cBlue, prefix+ctx)
+}
+
+// KUBECONFIG may list several files. As in kubectl, the first file that sets
+// current-context wins; unreadable files and empty values are passed over.
+func kubeContext(kubeconfig, home string) string {
+	paths := filepath.SplitList(kubeconfig)
+	if len(paths) == 0 {
+		paths = []string{filepath.Join(home, ".kube", "config")}
+	}
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(string(data), "\n") {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "current-context:") {
+				ctx := strings.TrimSpace(strings.TrimPrefix(line, "current-context:"))
+				// YAML allows the name in quotes; they are not part of it.
+				if ctx = strings.Trim(ctx, "\"'"); ctx != "" {
+					return ctx
 				}
-				return fc(cBlue, prefix+ctx)
 			}
 		}
 	}
