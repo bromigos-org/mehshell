@@ -133,9 +133,9 @@ func TestGitLinkedWorktreeAndDetachedHead(t *testing.T) {
 		t.Fatalf("worktree prompt: %q", got)
 	}
 	gitFile(t, worktree, "nested/file", "dirty")
-	branch, root := gitBranch(filepath.Join(worktree, "nested"))
-	if branch != "feature" || root != worktree {
-		t.Fatalf("nested worktree discovery: %q %q", branch, root)
+	nested := findGitRepo(filepath.Join(worktree, "nested"))
+	if nested.branch != "feature" || nested.root != worktree {
+		t.Fatalf("nested worktree discovery: %q %q", nested.branch, nested.root)
 	}
 	mustGit(t, worktree, "checkout", "--detach")
 	got := formatGitSegment(worktree, false)
