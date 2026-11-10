@@ -17,7 +17,7 @@ See the [bromigOS manual](https://github.com/bromigos-org/bromigOS/blob/main/man
 - 🖥️ OS icon auto-detection for Arch, Ubuntu, Fedora, Debian, NixOS, and macOS.
 - 📦 Runtime version detection for Node.js, Python, Go, Rust, Ruby, and Java when marker files are present.
 - ☁️ Cloud context support for Kubernetes, AWS, Azure, and GCP profiles.
-- 🏗️ Terraform workspace and Docker context detection.
+- 🏗️ Terraform version and Docker context detection.
 - 🐍 Environment detection for Conda and virtualenv.
 - 🔋 Battery level with charge state icons.
 - ⏱️ Command duration (3s+), time, and exit code coloring.
